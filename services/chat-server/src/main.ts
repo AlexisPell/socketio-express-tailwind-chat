@@ -4,6 +4,8 @@ import cors from 'cors';
 import { Server } from 'socket.io';
 import { connect } from 'mongoose';
 
+import net from 'net';
+
 import { router } from './routes';
 import { User, UserDocument } from './enitites/user';
 
@@ -61,6 +63,7 @@ async function bootstrap() {
 
 		// SEND MESSAGE
 		socket.on('send-message', async (message, callback) => {
+			console.log(`SEND MESSAGE ON SERVER SIDE: ${message}`);
 			const user = await User.findOne({ socketId: socket.id });
 			if (!user) return callback(`User not found in socket session`);
 

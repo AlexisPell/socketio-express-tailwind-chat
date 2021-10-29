@@ -21,6 +21,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({}) => {
 	const [name, setName] = useState('');
 	const [room, setRoom] = useState('');
 	const [message, setMessage] = useState('');
+	const [incomingMsg, setIncomingMsg] = useState<Message | null>(null);
 	const [messages, setMessages] = useState<Message[]>([]);
 
 	// ON JOIN UE
@@ -47,14 +48,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({}) => {
 	// SEND MESSAGE UE
 	useEffect(() => {
 		socket.on('message', (msg: Message) => {
-			setMessages([...messages, msg]);
+			setMessages((messages) => [...messages, msg]);
 		});
-	}, [messages]);
+	}, []);
 
 	const sendMessage = (e: React.KeyboardEvent, msg: string) => {
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			socket.emit('send-message', msg, () => setMessage(''));
+			setMessage('');
 		}
 	};
 
@@ -65,9 +67,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({}) => {
 			<header className='bg-gray-500 text-center text-gray-800 text-2xl py-2 h-auto max-h-24 rounded-b-md'>
 				Welcome to <strong>{room}</strong> room
 			</header>
-			<main className='mb-auto'>
+			<main className='mb-auto h-full overflow-y-auto'>
 				{messages.map((msg) => (
-					<div className='m-4 p-2 bg-blue-200 rounded-lg'>
+					<div key={Math.random() * 1000} className='m-4 p-2 bg-blue-200 rounded-lg'>
 						<strong>{msg.user}</strong>: {msg.text}
 					</div>
 				))}
