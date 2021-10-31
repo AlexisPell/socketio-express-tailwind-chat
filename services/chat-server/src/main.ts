@@ -3,9 +3,6 @@ import http from 'http';
 import cors from 'cors';
 import { Server } from 'socket.io';
 import { connect } from 'mongoose';
-
-import net from 'net';
-
 import { router } from './routes';
 import { User, UserDocument } from './enitites/user';
 
@@ -34,9 +31,9 @@ async function bootstrap() {
 		socket.on('join-chat', async ({ name, room }, callback) => {
 			let user;
 			// new user
-			const potentialUser = await User.findOne({ name, room });
+			const potentialUser = await User.findOne({ name });
 			if (potentialUser) {
-				user = await User.findOneAndUpdate({ name, room }, { $set: { socketId: socket.id } });
+				user = await User.findOneAndUpdate({ name }, { $set: { socketId: socket.id, room } });
 				callback('Existing user comes in chat');
 			}
 
@@ -51,12 +48,12 @@ async function bootstrap() {
 			}
 			if (!user) throw new Error('USER IS NOT CREATED');
 
-			// broadcasting
-			socket.broadcast
-				.to(user.room)
-				.emit('message', { user: 'Telegrach', text: `${user.name} joined a chat` });
-
 			socket.join(user.room);
+
+			io.to(user.room).emit('message', { user: 'Telegrach', text: `${user.name} joined a chat` });
+
+			const allUsersInRoom = await User.find({ room: user.room });
+			io.to(user.room).emit('room-data', { room: user.room, users: allUsersInRoom });
 
 			callback();
 		});
@@ -68,12 +65,26 @@ async function bootstrap() {
 			if (!user) return callback(`User not found in socket session`);
 
 			io.to(user.room).emit('message', { user: user.name, text: message });
+			const allUsersInRoom = await User.find({ room: user.room });
+			io.to(user.room).emit('room-data', { room: user.room, users: allUsersInRoom });
 
 			callback();
 		});
 
 		// CLOSE CONNECTION
-		socket.on('disconnect', () => {
+		socket.on('disconnect', async (reason) => {
+			const user = await User.findOne({ socketId: socket.id });
+
+			if (!user) {
+				console.log('ERROR, user not found on disconnect: ', reason);
+				throw new Error('No user with such name found...');
+			}
+
+			io.to(user.room).emit('message', {
+				user: 'Telegrach',
+				text: `${user.name} left the room...`,
+			});
+
 			console.log('User had left.');
 		});
 	});

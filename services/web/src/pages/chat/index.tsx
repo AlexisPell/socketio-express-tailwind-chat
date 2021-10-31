@@ -4,7 +4,8 @@ import queryString from 'query-string';
 import io, { Socket } from 'socket.io-client';
 import { TextField } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import InputAdornment from '@mui/material/InputAdornment';
+import ScrollToBottom from 'react-scroll-to-bottom';
+import ReactEmoji from 'react-emoji';
 
 let socket: Socket;
 const backUrl = 'localhost:5000';
@@ -45,10 +46,16 @@ export const ChatPage: React.FC<ChatPageProps> = ({}) => {
 		};
 	}, [location.search]);
 
-	// SEND MESSAGE UE
+	// GET MESSAGE FROM SERVER
 	useEffect(() => {
 		socket.on('message', (msg: Message) => {
 			setMessages((messages) => [...messages, msg]);
+		});
+	}, []);
+	// GET ROOM DATA FROM SERVER
+	useEffect(() => {
+		socket.on('room-data', ({ room, users }) => {
+			console.log('ROOM DATA RECEIVED: ', room, users);
 		});
 	}, []);
 
@@ -68,11 +75,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({}) => {
 				Welcome to <strong>{room}</strong> room
 			</header>
 			<main className='mb-auto h-full overflow-y-auto'>
-				{messages.map((msg) => (
-					<div key={Math.random() * 1000} className='m-4 p-2 bg-blue-200 rounded-lg'>
-						<strong>{msg.user}</strong>: {msg.text}
-					</div>
-				))}
+				<ScrollToBottom className='messages'>
+					{messages.map((msg) => (
+						<div key={Math.random() * 1000} className='m-4 p-2 bg-blue-200 rounded-lg'>
+							<strong>{msg.user}</strong>: {ReactEmoji.emojify(msg.text)}
+						</div>
+					))}
+				</ScrollToBottom>
 			</main>
 			<TextField
 				className='mt-auto w-full bg-gray-500 rounded-t-md text-2xl'
